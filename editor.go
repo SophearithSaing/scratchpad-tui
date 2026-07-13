@@ -1,6 +1,21 @@
 package main
 
-import "strings"
+import (
+	"strings"
+
+	"charm.land/lipgloss/v2"
+)
+
+const tabWidth = 4
+
+var (
+	editorBaseStyle             = lipgloss.NewStyle().Foreground(colorText).Background(colorSurface)
+	editorMutedStyle            = lipgloss.NewStyle().Foreground(colorMuted).Background(colorSurface)
+	editorLineNumberStyle       = lipgloss.NewStyle().Foreground(colorBorder).Background(colorSurface)
+	editorActiveLineNumberStyle = lipgloss.NewStyle().Foreground(colorSelectionText).Background(colorSurface)
+	editorSelectionStyle        = lipgloss.NewStyle().Foreground(colorSelectionText).Background(colorAccent)
+	editorCursorStyle           = lipgloss.NewStyle().Bold(true).Foreground(colorSelectionText).Background(colorCyan)
+)
 
 type editorModel struct {
 	value       []rune

@@ -7,7 +7,18 @@ import (
 
 	"charm.land/bubbles/v2/viewport"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/bubbles/viewport"
+)
+
+var (
+	colorBackground    = lipgloss.Color("#041522")
+	colorSurface       = lipgloss.Color("#08263C")
+	colorSurfaceAlt    = lipgloss.Color("#0D324C")
+	colorBorder        = lipgloss.Color("#1C5B70")
+	colorText          = lipgloss.Color("#EAF8FA")
+	colorMuted         = lipgloss.Color("#86ADBA")
+	colorAccent        = lipgloss.Color("#1DCEB7")
+	colorCyan          = lipgloss.Color("#25BDD1")
+	colorSelectionText = lipgloss.Color("#031720")
 )
 
 type note struct {
