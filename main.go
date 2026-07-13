@@ -22,7 +22,7 @@ var (
 )
 
 type note struct {
-	ID    string `json:"id"`
+	ID    int    `json:"id"`
 	Title string `json:"title"`
 	Body  string `json:"body"`
 }
