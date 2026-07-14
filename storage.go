@@ -7,7 +7,12 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
+
+	tea "charm.land/bubbletea/v2"
 )
+
+const autoSaveDelay = 500 * time.Millisecond
 
 type diskStore struct {
 	path         string
@@ -75,4 +80,27 @@ func (ds *diskStore) save(revision uint64, state session) error {
 
 	ds.lastRevision = revision
 	return nil
+}
+
+type saveDueMsg uint64
+
+type saveFinishedMsg struct {
+	revision uint64
+	err      error
+}
+
+func scheduleSave(revision uint64) tea.Cmd {
+	return tea.Tick(autoSaveDelay, func(time.Time) tea.Msg {
+		return saveDueMsg(revision)
+	})
+}
+
+func saveCmd(ds *diskStore, revision uint64, state session) tea.Cmd {
+	snapshot := cloneSession(state)
+	return func() tea.Msg {
+		return saveFinishedMsg{
+			revision: revision,
+			err:      ds.save(revision, snapshot),
+		}
+	}
 }
