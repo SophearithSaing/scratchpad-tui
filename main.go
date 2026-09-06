@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 func main() {
@@ -14,5 +16,18 @@ func main() {
 }
 
 func run(in io.Reader, out io.Writer) error {
-	return nil
+	store, err := newSessionStore()
+	if err != nil {
+		return err
+	}
+
+	session, err := store.load()
+	if err != nil {
+		return err
+	}
+
+	appModel := newAppModel(store, session)
+	program := tea.NewProgram(appModel, tea.WithInput(in), tea.WithOutput(out))
+	_, err = program.Run()
+	return err
 }
