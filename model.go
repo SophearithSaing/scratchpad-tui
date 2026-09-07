@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/textarea"
@@ -112,15 +113,23 @@ func (m appModel) Init() tea.Cmd {
 
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	if key, ok := msg.(tea.KeyPressMsg); ok && key.String() == "ctrl+c" {
-		return m, tea.Quit
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
+		return m, nil
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "ctrl+c":
+			return m, tea.Quit
+		}
 	}
 
 	return m, cmd
 }
 
 func (m appModel) View() tea.View {
-	view := tea.NewView("Loading scratchpad")
+	view := tea.NewView(m.render())
 	view.AltScreen = true
 	view.WindowTitle = "Scratchpad"
 	return view
@@ -130,6 +139,54 @@ func (m *appModel) addTab() {
 	m.tabs = append(m.tabs, newTab(m.nextID, "", ""))
 	m.active = len(m.tabs) - 1
 	m.nextID++
+}
+
+func (m appModel) render() string {
+	if m.width == 0 || m.height == 0 {
+		return "Loading scratchpad..."
+	}
+	header := m.renderHeader()
+	body := styleEditor.Render(m.tabs[m.active].editor.View())
+	page := lipgloss.JoinVertical(lipgloss.Left, header, body)
+	return page
+}
+
+func (m appModel) renderHeader() string {
+	logo := styleLogo.Render("SCRATCHPAD")
+	available := max(0, m.width-lipgloss.Width(logo)-1)
+	renderTab := func(i int) string {
+		// tab := m.tabs[i]
+		label := fmt.Sprintf("%d %s", i+1, "tab title")
+		if i == m.active {
+			return styleTabOn.Render(label)
+		}
+		return styleTab.Render(label)
+	}
+
+	start, end := m.active, m.active
+	used := lipgloss.Width(renderTab(m.active))
+	for start > 0 {
+		candidate := renderTab(start - 1)
+		if used+1+lipgloss.Width(candidate) > available {
+			break
+		}
+		start--
+		used += 1 + lipgloss.Width(candidate)
+	}
+	for end+1 < len(m.tabs) {
+		candidate := renderTab(end + 1)
+		if used+1+lipgloss.Width(candidate) > available {
+			break
+		}
+		end++
+		used += 1 + lipgloss.Width(candidate)
+	}
+
+	tabs := make([]string, 0, end-start+1)
+	for i := start; i <= end; i++ {
+		tabs = append(tabs, renderTab(i))
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, logo, " ", strings.Join(tabs, " "))
 }
 
 func newTab(id int, fallbackTitle, content string) tab {
