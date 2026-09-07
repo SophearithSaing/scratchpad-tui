@@ -102,7 +102,7 @@ func newAppModel(store sessionStore, session savedSession) appModel {
 	pathStyles := m.pathInput.Styles()
 	pathStyles.Cursor.Color = colorAccent
 	m.pathInput.SetStyles(pathStyles)
-	// TODO: focus
+	m.focusActive()
 
 	return m
 }
@@ -112,8 +112,6 @@ func (m appModel) Init() tea.Cmd {
 }
 
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
@@ -122,10 +120,14 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
+		case "ctrl+n":
+			m.addTab()
+			return m, nil
 		}
+		return m.updateContent(msg)
 	}
 
-	return m, cmd
+	return m.updateContent(msg)
 }
 
 func (m appModel) View() tea.View {
@@ -133,12 +135,6 @@ func (m appModel) View() tea.View {
 	view.AltScreen = true
 	view.WindowTitle = "Scratchpad"
 	return view
-}
-
-func (m *appModel) addTab() {
-	m.tabs = append(m.tabs, newTab(m.nextID, "", ""))
-	m.active = len(m.tabs) - 1
-	m.nextID++
 }
 
 func (m appModel) render() string {
@@ -187,6 +183,48 @@ func (m appModel) renderHeader() string {
 		tabs = append(tabs, renderTab(i))
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, logo, " ", strings.Join(tabs, " "))
+}
+
+func (m *appModel) addTab() {
+	m.tabs = append(m.tabs, newTab(m.nextID, "", ""))
+	m.active = len(m.tabs) - 1
+	m.nextID++
+}
+
+func (m *appModel) focusActive() tea.Cmd {
+	var cmd tea.Cmd
+	for i := range m.tabs {
+		if i == m.active && m.mode == editMode {
+			cmd = m.tabs[i].editor.Focus()
+		} else {
+			m.tabs[i].editor.Blur()
+		}
+	}
+	return cmd
+}
+
+func (m *appModel) blurActive() {
+	if len(m.tabs) > 0 {
+		m.tabs[m.active].editor.Blur()
+	}
+}
+
+func (m appModel) updateContent(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	before := m.tabs[m.active].editor.Value()
+	m.tabs[m.active].editor, cmd = m.tabs[m.active].editor.Update(msg)
+	if m.tabs[m.active].editor.Value() != before {
+		updated, saveCmd := m.changed()
+		m = updated.(appModel)
+		return m, tea.Batch(cmd, saveCmd)
+	}
+	return m, cmd
+}
+
+func (m appModel) changed() (tea.Model, tea.Cmd) {
+	m.revision++
+	revision := m.revision
+	return m, tea.Tick(autosaveDelay, func(time.Time) tea.Msg { return autosaveMsg(revision) })
 }
 
 func (t tab) title() string {
