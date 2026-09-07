@@ -155,8 +155,8 @@ func (m appModel) renderHeader() string {
 	logo := styleLogo.Render("SCRATCHPAD")
 	available := max(0, m.width-lipgloss.Width(logo)-1)
 	renderTab := func(i int) string {
-		// tab := m.tabs[i]
-		label := fmt.Sprintf("%d %s", i+1, "tab title")
+		tab := m.tabs[i]
+		label := fmt.Sprintf("%d %s", i+1, tab.title())
 		if i == m.active {
 			return styleTabOn.Render(label)
 		}
@@ -187,6 +187,24 @@ func (m appModel) renderHeader() string {
 		tabs = append(tabs, renderTab(i))
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, logo, " ", strings.Join(tabs, " "))
+}
+
+func (t tab) title() string {
+	for line := range strings.SplitSeq(t.editor.Value(), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			return truncate(line, 22)
+		}
+	}
+	return truncate(t.fallbackTitle, 22)
+}
+
+func truncate(value string, width int) string {
+	runes := []rune(value)
+	if len(runes) <= width {
+		return value
+	}
+	return string(runes[:width-3]) + "..."
 }
 
 func newTab(id int, fallbackTitle, content string) tab {
