@@ -116,6 +116,15 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		return m, nil
+	case autosaveMsg:
+		if uint64(msg) == m.revision && m.savedRev != m.revision {
+			if err := m.saveSession(); err != nil {
+				// autosave failed
+			} else {
+				m.savedRev = m.revision
+				// draft saved
+			}
+		}
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c":
@@ -225,6 +234,18 @@ func (m appModel) changed() (tea.Model, tea.Cmd) {
 	m.revision++
 	revision := m.revision
 	return m, tea.Tick(autosaveDelay, func(time.Time) tea.Msg { return autosaveMsg(revision) })
+}
+
+func (m *appModel) saveSession() error {
+	tabs := make([]savedTab, 0, len(m.tabs))
+	for _, tab := range m.tabs {
+		tabs = append(tabs, savedTab{ID: tab.id, Title: tab.fallbackTitle, Content: tab.editor.Value()})
+	}
+	return m.store.save(savedSession{
+		Active: m.active,
+		NextID: m.nextID,
+		Tabs:   tabs,
+	})
 }
 
 func (t tab) title() string {
