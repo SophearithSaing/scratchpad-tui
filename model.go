@@ -130,8 +130,11 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "ctrl+n":
+			m.blurActive()
 			m.addTab()
-			return m, nil
+			m.mode = editMode
+			m.focusActive()
+			return m.changed()
 		}
 		return m.updateContent(msg)
 	}
