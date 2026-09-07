@@ -135,6 +135,12 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.mode = editMode
 			m.focusActive()
 			return m.changed()
+		case "ctrl+h", "ctrl+[":
+			m.switchTab(-1)
+			return m, m.focusActive()
+		case "ctrl+l", "ctrl+]":
+			m.switchTab(1)
+			return m, m.focusActive()
 		}
 		return m.updateContent(msg)
 	}
@@ -201,6 +207,15 @@ func (m *appModel) addTab() {
 	m.tabs = append(m.tabs, newTab(m.nextID, "", ""))
 	m.active = len(m.tabs) - 1
 	m.nextID++
+}
+
+func (m *appModel) switchTab(offset int) {
+	if len(m.tabs) < 2 {
+		return
+	}
+	m.blurActive()
+	m.active = (m.active + offset + len(m.tabs)) % len(m.tabs)
+	m.focusActive()
 }
 
 func (m *appModel) focusActive() tea.Cmd {
